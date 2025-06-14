@@ -1,0 +1,12 @@
+{
+    "MonteCarloSequenceEntropy": "MCSE",
+    "MonteCarloNormalizedSequenceEntropy": "MCNSE",
+    "SemanticEntropy": "SE",
+    "MaximumSequenceProbability": "MSP",
+    "Perplexity": "PPL",
+    "MeanTokenEntropy": "MTE",
+    "LexicalSimilarity_rougeL": "LS_rL",
+    "Rouge_rouge1": "r1",
+    "Rouge_rouge2": "r2",
+    "Rouge_rougeL": "rL"
+}

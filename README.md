@@ -9,7 +9,7 @@ pip install -r requirements.txt
 
 ## Usage
 ```bash
-streamlit run uq_benchmark_explorer.py
+streamlit run polyscope.py
 ```
 Upload your `.pt`/`.pth`/`.man` archive when prompted and use the sidebar controls to inspect meta information, filter the data table, and plot rejection curves.
 
@@ -28,10 +28,8 @@ The app will auto-load this JSON and rename columns accordingly. Example `column
 
 ```json
 {
-  "coverage": "Cov",
-  "confidence": "Conf",
-  "error": "Err",
-  "rouge_l": "R-L"
+    "MonteCarloSequenceEntropy": "MCSE",
+    "MonteCarloNormalizedSequenceEntropy": "MCNSE",
 }
 ```
 

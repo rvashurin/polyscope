@@ -41,3 +41,7 @@ The rejection plot now displays two curves:
 - **Oracle**: removes data points in ascending order of the selected quality metric (optimal removal of the worst examples).
 
 The Y-axis is scaled to start just below the minimum metric value for better visual focus.
+
+## PRR Scores Table
+
+Under the rejection curves, PolyScope now displays a PRR scores table. Rows correspond to uncertainty estimation methods, and columns correspond to generation metrics. Each cell shows the normalized PRR at 0.5, extracted from the `metrics` key of the manager archive under the tuple `(sequence, method_name, metric_name, 'prr_0.5_normalized')`.

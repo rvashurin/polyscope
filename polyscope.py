@@ -162,32 +162,58 @@ def main():
     st.subheader("Filtered Data")
     st.dataframe(filtered[display_cols])
 
-    st.sidebar.header("Rejection Curve")
+    st.sidebar.header("Rejection Curves")
     if est_cols and met_cols:
-        u_choice = st.sidebar.selectbox("Uncertainty method", est_cols)
+        u_choices = st.sidebar.multiselect(
+            "Uncertainty methods", est_cols, default=est_cols[:1]
+        )
         m_choice = st.sidebar.selectbox("Quality metric", met_cols)
-        if u_choice and m_choice:
-            # Rejection curve based on uncertainty ranking
-            rej_unc = compute_rejection_curve(filtered, u_choice, m_choice, ascending=False)
+        if u_choices and m_choice:
             # Oracle curve based on true metric ranking (remove lowest metric first)
-            rej_oracle = compute_rejection_curve(filtered, m_choice, m_choice, ascending=True)
-            # Combine curves
-            df_plot = rej_unc.rename(columns={"metric": u_choice})
-            df_plot["oracle"] = rej_oracle["metric"].values
-            # Determine y-axis lower bound slightly below min
-            min_val = df_plot[[u_choice, "oracle"]].min().min()
-            max_val = df_plot[[u_choice, "oracle"]].max().max()
+            rej_oracle = compute_rejection_curve(
+                filtered, m_choice, m_choice, ascending=True
+            )
+            combined = pd.DataFrame({
+                "fraction_rejected": rej_oracle["fraction_rejected"],
+                "oracle": rej_oracle["metric"],
+            })
+            for u in u_choices:
+                rej = compute_rejection_curve(filtered, u, m_choice, ascending=False)
+                combined[u] = rej["metric"].values
+
+            all_cols = u_choices + ["oracle"]
+            min_val = combined[all_cols].min().min()
+            max_val = combined[all_cols].max().max()
             y0 = min_val - 0.02 * (max_val - min_val)
-            # Plot with Plotly for axis control
+
             fig = px.line(
-                df_plot.reset_index(),
+                combined,
                 x="fraction_rejected",
-                y=[u_choice, "oracle"],
-                labels={"value": m_choice, "fraction_rejected": "Fraction Rejected", "variable": "Curve"},
+                y=all_cols,
+                labels={
+                    "value": m_choice,
+                    "fraction_rejected": "Fraction Rejected",
+                    "variable": "Curve",
+                },
             )
             fig.update_yaxes(range=[y0, max_val])
-            st.subheader("Rejection Curve")
+            st.subheader("Rejection Curves")
             st.plotly_chart(fig, use_container_width=True)
+            metrics_dict = meta.get("metrics", {})
+            if metrics_dict:
+                inv_acro = {v: k for k, v in acronyms.items()}
+                raw_methods = [inv_acro.get(m, m) for m in est_cols]
+                raw_metrics = [inv_acro.get(m, m) for m in met_cols]
+                prr_rows = []
+                for disp_m, raw_m in zip(est_cols, raw_methods):
+                    row = []
+                    for disp_n, raw_n in zip(met_cols, raw_metrics):
+                        key = ("sequence", raw_m, raw_n, "prr_0.5_normalized")
+                        row.append(metrics_dict.get(key, np.nan))
+                    prr_rows.append(row)
+                prr_df = pd.DataFrame(prr_rows, index=est_cols, columns=met_cols)
+                st.subheader("PRR Scores")
+                st.dataframe(prr_df)
 
 
 if __name__ == "__main__":

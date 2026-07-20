@@ -14,6 +14,33 @@ import json
 import plotly.express as px
 
 
+def has_complex_values(vals):
+    """Return True if any value is complex (Python/NumPy/Torch)."""
+    if torch.is_tensor(vals):
+        return torch.is_complex(vals)
+    if isinstance(vals, np.ndarray):
+        return np.iscomplexobj(vals)
+    # Try vectorized check for array-likes
+    try:
+        arr = np.asarray(vals)
+        if np.iscomplexobj(arr):
+            return True
+    except Exception:
+        pass
+    # Fallback: element-wise scan
+    try:
+        for v in vals:
+            if isinstance(v, (complex, np.complexfloating)):
+                return True
+            if torch.is_tensor(v) and torch.is_complex(v):
+                return True
+            if isinstance(v, np.ndarray) and np.iscomplexobj(v):
+                return True
+    except Exception:
+        return isinstance(vals, (complex, np.complexfloating))
+    return False
+
+
 def load_archive(uploaded_file):
     """Load the torch-saved archive and return meta dict and DataFrame."""
     file_bytes = uploaded_file.read()
@@ -22,24 +49,29 @@ def load_archive(uploaded_file):
     )
     meta = {k: v for k, v in raw.items() if k not in ("estimations", "stats", "gen_metrics")}
 
+    filtered_estimations = {}
+    for key, vals in raw.get("estimations", {}).items():
+        if not has_complex_values(vals):
+            filtered_estimations[key] = vals
+
     N = None
     if "stats" in raw and raw["stats"]:
         first = next(iter(raw["stats"].values()))
         N = len(first)
-    elif "estimations" in raw and raw["estimations"]:
-        first = next(iter(raw["estimations"].values()))
+    elif filtered_estimations:
+        first = next(iter(filtered_estimations.values()))
         N = len(first)
     elif "gen_metrics" in raw and raw["gen_metrics"]:
         first = next(iter(raw["gen_metrics"].values()))
         N = len(first)
     else:
         st.error("Archive contains no records in stats/estimations/gen_metrics.")
-        return meta, None
+        return meta, None, [], []
 
     df = pd.DataFrame(index=range(N))
 
     est_cols = []
-    for (_seq, method), vals in raw.get("estimations", {}).items():
+    for (_seq, method), vals in filtered_estimations.items():
         df[method] = vals
         est_cols.append(method)
 
